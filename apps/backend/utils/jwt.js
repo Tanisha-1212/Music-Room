@@ -26,10 +26,10 @@ export const verifyToken = (token) => {
 // Set token in cookie
 export const setTokenCookie = (res, token) => {
   res.cookie('token', token, {
-    httpOnly: true,
-    secure: NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    httpOnly: true,                          // JavaScript can't access
+    secure: NODE_ENV === 'production',       // HTTPS only in production
+    sameSite: NODE_ENV === 'production' ? 'none' : 'lax', // Cross-site in production
+    maxAge: 7 * 24 * 60 * 60 * 1000,        // 7 days
   });
 };
 

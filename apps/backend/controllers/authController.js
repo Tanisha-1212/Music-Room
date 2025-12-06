@@ -40,7 +40,6 @@ export const signup = async (req, res) => {
       message: 'User registered successfully',
       data: {
         user: user.toPublicJSON(),
-        token,
       },
     });
   } catch (error) {
@@ -95,7 +94,6 @@ export const login = async (req, res) => {
       message: 'Login successful',
       data: {
         user: user.toPublicJSON(),
-        token,
       },
     });
   } catch (error) {

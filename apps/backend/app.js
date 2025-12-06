@@ -6,11 +6,8 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
+import musicRoutes from './routes/musicRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
-import musicRoutes from './routes/musicRoutes.js'
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 export const createApp = () => {
   const app = express();
@@ -20,8 +17,8 @@ export const createApp = () => {
   
   // CORS configuration
   app.use(cors({
-    origin: env.CORS_ORIGIN,
-    credentials: true,
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    credentials: true, // ← Allow cookies
   }));
 
   // Body parsing middleware

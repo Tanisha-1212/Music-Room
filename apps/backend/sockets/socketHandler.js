@@ -7,37 +7,42 @@ import { verifyToken } from '../utils/jwt.js';
 const activeUsers = new Map(); // { socketId: { userId, roomId, username } }
 
 export const setupSocketHandlers = (io) => {
-  io.on('connection', (socket) => {
-    console.log(`✅ Client connected: ${socket.id}`);
+  // Middleware to authenticate socket connections using cookies
+  io.use(async (socket, next) => {
+    try {
+      // Get token from cookie (sent automatically by browser)
+      const token = socket.handshake.headers.cookie
+        ?.split('; ')
+        .find(row => row.startsWith('token='))
+        ?.split('=')[1];
 
-    // Authenticate socket connection
-    socket.on('authenticate', async (token) => {
-      try {
-        const decoded = verifyToken(token);
-        if (!decoded) {
-          socket.emit('error', { message: 'Invalid token' });
-          return;
-        }
-
-        const user = await User.findById(decoded.userId);
-        if (!user) {
-          socket.emit('error', { message: 'User not found' });
-          return;
-        }
-
-        socket.userId = user._id.toString();
-        socket.username = user.username;
-        socket.avatar = user.avatar;
-
-        socket.emit('authenticated', {
-          userId: socket.userId,
-          username: socket.username,
-        });
-      } catch (error) {
-        console.error('Socket auth error:', error);
-        socket.emit('error', { message: 'Authentication failed' });
+      if (!token) {
+        return next(new Error('Authentication required'));
       }
-    });
+
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return next(new Error('Invalid token'));
+      }
+
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        return next(new Error('User not found'));
+      }
+
+      socket.userId = user._id.toString();
+      socket.username = user.username;
+      socket.avatar = user.avatar;
+
+      next();
+    } catch (error) {
+      console.error('Socket auth error:', error);
+      next(new Error('Authentication failed'));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log(`✅ Client connected: ${socket.id} (${socket.username})`);
 
     // Join a room
     socket.on('join-room', async ({ roomId }) => {
