@@ -1,7 +1,7 @@
 import Room from '../models/Room.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
-import { verifyToken } from '../utils/jwt.js';
+import jwt from 'jsonwebtoken';
 
 // Store active users in rooms
 const activeUsers = new Map(); // { socketId: { userId, roomId, username } }
@@ -11,8 +11,13 @@ export const setupSocketHandlers = (io) => {
   io.use(async (socket, next) => {
     try {
       // Get token from cookie (sent automatically by browser)
-      const token = socket.handshake.headers.cookie
-        ?.split('; ')
+      const cookies = socket.handshake.headers.cookie;
+
+      if (!cookies) {
+        return next(new Error('Authentication required'));
+      }
+
+      const token = cookies.split('; ')
         .find(row => row.startsWith('token='))
         ?.split('=')[1];
 
@@ -20,12 +25,13 @@ export const setupSocketHandlers = (io) => {
         return next(new Error('Authentication required'));
       }
 
-      const decoded = verifyToken(token);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (!decoded) {
         return next(new Error('Invalid token'));
       }
 
-      const user = await User.findById(decoded.userId);
+      // ✅ FIX: Use decoded.id (not decoded.userId)
+      const user = await User.findById(decoded.id).select('-password');
       if (!user) {
         return next(new Error('User not found'));
       }

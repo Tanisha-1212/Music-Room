@@ -1,35 +1,33 @@
 import express from 'express';
-import passport from 'passport';
-import { signup, login, logout, getCurrentUser, googleAuthCallback } from '../controllers/authController.js';
-import { authenticate } from '../middleware/auth.js';
-import { validateSignup, validateLogin } from '../middleware/validation.js';
-
 const router = express.Router();
+import{
+    register,
+    login,
+    logout,
+    getCurrentUser,
+    googleAuth,
+    googleAuthCallback
+} from '../controllers/authController.js';
 
-// Public routes
-router.post('/signup', validateSignup, signup);
-router.post('/login', validateLogin, login);
+import {authenticate} from '../middleware/auth.js';
+import passport  from 'passport';
+
+router.post("/register", register);
+router.post("/login", login);
+router.post("/logout", authenticate, logout);
+
+router.get("/me", authenticate, getCurrentUser);
 
 // Google OAuth routes
-router.get(
-  '/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    session: false,
-  })
-);
+router.get('/google', googleAuth);
 
 router.get(
   '/google/callback',
-  passport.authenticate('google', {
-    session: false,
-    failureRedirect: `${process.env.CORS_ORIGIN || 'http://localhost:3000'}/auth/error`,
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`,
+    session: false // NO SESSION
   }),
   googleAuthCallback
 );
-
-// Protected routes
-router.post('/logout', authenticate, logout);
-router.get('/me', authenticate, getCurrentUser);
 
 export default router;

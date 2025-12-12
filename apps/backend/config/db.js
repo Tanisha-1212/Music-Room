@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const connectDatabase = async () => {
+const connectDatabase = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URL, {
       maxPoolSize: 10,
@@ -37,3 +37,5 @@ export const connectDatabase = async () => {
     process.exit(1);
   }
 };
+
+export default connectDatabase;

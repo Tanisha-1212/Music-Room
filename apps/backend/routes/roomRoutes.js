@@ -1,31 +1,28 @@
 import express from 'express';
-import {
-  createRoom,
-  joinRoom,
-  leaveRoom,
-  getRoomDetails,
-  getMyRooms,
-  deleteRoom,
-  addSongToPlaylist,
-  removeSongFromPlaylist,
-} from '../controllers/roomController.js';
-import { authenticate } from '../middleware/auth.js';
-
 const router = express.Router();
+import {
+    createRoom ,
+    joinRoom,
+    leaveRoom,
+    getMyRooms,
+    getRoomDetails,
+    deleteRoom,
+    addSongToPlaylist,
+    removeSongFromPlaylist
+} from '../controllers/roomController.js';
 
-// All routes require authentication
-router.use(authenticate);
+import {authenticate} from '../middleware/auth.js';
 
-// Room management
-router.post('/', createRoom);
-router.post('/join', joinRoom);
-router.get('/my-rooms', getMyRooms);
-router.get('/:roomId', getRoomDetails);
-router.post('/:roomId/leave', leaveRoom);
-router.delete('/:roomId', deleteRoom);
+router.post('/', authenticate, createRoom);
+router.post('/join', authenticate, joinRoom);
+router.post('/leave/:roomCode', authenticate, leaveRoom);
 
-// Playlist management
-router.post('/:roomId/playlist', addSongToPlaylist);
-router.delete('/:roomId/playlist/:songId', removeSongFromPlaylist);
+router.get('/my-rooms', authenticate, getMyRooms);
+router.get('/:roomId', authenticate, getRoomDetails);
+
+router.delete('/:roomId', authenticate, deleteRoom);
+
+router.post('/:roomId/playlist', authenticate, addSongToPlaylist);
+router.delete('/:roomId/playlist/:songId', authenticate, removeSongFromPlaylist);
 
 export default router;

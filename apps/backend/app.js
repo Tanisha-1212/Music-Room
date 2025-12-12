@@ -4,7 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env.js';
+import passport from 'passport';
+import './config/passport.js';
 import authRoutes from './routes/authRoutes.js';
 import musicRoutes from './routes/musicRoutes.js';
 import roomRoutes from './routes/roomRoutes.js';
@@ -17,7 +18,7 @@ export const createApp = () => {
   
   // CORS configuration
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true, // ← Allow cookies
   }));
 
@@ -26,11 +27,13 @@ export const createApp = () => {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
 
+  app.use(passport.initialize());
+
   // Compression middleware
   app.use(compression());
 
   // Logging middleware
-  if (env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
   } else {
     app.use(morgan('combined'));
@@ -41,7 +44,7 @@ export const createApp = () => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      environment: env.NODE_ENV,
+      environment: process.env.NODE_ENV,
     });
   });
 
@@ -63,7 +66,7 @@ export const createApp = () => {
     console.error('Error:', err);
     res.status(500).json({
       success: false,
-      message: env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
     });
   });
 

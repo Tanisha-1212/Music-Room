@@ -1,79 +1,47 @@
-import { verifyToken } from '../utils/jwt.js';
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    // Get token from cookie or Authorization header
+    // Get token from cookie
     let token = req.cookies.token;
-    
+
+    // Fallback to Authorization header
     if (!token && req.headers.authorization) {
-      const authHeader = req.headers.authorization;
-      if (authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
+      if (req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.substring(7);
       }
     }
 
+    // Check if token exists
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required',
+        message: 'Authentication required'
       });
     }
 
     // Verify token
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find user
+    req.user = await User.findById(decoded.id).select('-password');
+
+    if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid or expired token',
+        message: 'User not found'
       });
     }
 
-    // Get user from database
-    const user = await User.findById(decoded.userId).select('-password');
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
-
-    // Attach user to request
-    req.user = user;
+    // Continue to next middleware/controller
     next();
+
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(500).json({
+    res.status(401).json({
       success: false,
-      message: 'Authentication failed',
+      message: 'Invalid or expired token'
     });
-  }
-};
-
-// Optional: Middleware to check if user is authenticated (but doesn't fail if not)
-export const optionalAuth = async (req, res, next) => {
-  try {
-    let token = req.cookies.token;
-    
-    if (!token && req.headers.authorization) {
-      const authHeader = req.headers.authorization;
-      if (authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (token) {
-      const decoded = verifyToken(token);
-      if (decoded) {
-        const user = await User.findById(decoded.userId).select('-password');
-        if (user) {
-          req.user = user;
-        }
-      }
-    }
-    
-    next();
-  } catch (error) {
-    next();
   }
 };
