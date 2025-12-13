@@ -19,7 +19,7 @@ export const createApp = () => {
   // CORS configuration
   app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    credentials: true, // ← Allow cookies
+    credentials: true,
   }));
 
   // Body parsing middleware
@@ -27,6 +27,7 @@ export const createApp = () => {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
 
+  // Initialize Passport
   app.use(passport.initialize());
 
   // Compression middleware
@@ -38,6 +39,22 @@ export const createApp = () => {
   } else {
     app.use(morgan('combined'));
   }
+
+  // ✅ ADD THIS: Root endpoint
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      message: 'Music Room API',
+      version: '1.0.0',
+      status: 'running',
+      endpoints: {
+        health: '/health',
+        auth: '/api/auth',
+        rooms: '/api/rooms',
+        music: '/api/music'
+      },
+      documentation: 'https://github.com/Tanisha-1212/Music-Room'
+    });
+  });
 
   // Health check endpoint
   app.get('/health', (req, res) => {
