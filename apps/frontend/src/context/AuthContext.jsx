@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+// src/context/AuthContext.jsx
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authAPI } from '../services/api';
 import socketService from '../services/socket';
 
@@ -16,40 +17,58 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Check if user is logged in on mount
-  useEffect(() => {
-    // With cookies, we just try to fetch current user
-    // If cookie exists, backend will authenticate
-    fetchCurrentUser();
-  }, []);
+  
+  const hasFetched = useRef(false);
+  const isMounted = useRef(true);
 
   const fetchCurrentUser = async () => {
+    // Prevent multiple simultaneous calls
+    if (hasFetched.current) {
+      return;
+    }
+    
+    hasFetched.current = true;
+
     try {
+      setLoading(true);
       const response = await authAPI.getCurrentUser();
-      setUser(response.data.data.user);
       
-      // Connect socket (cookie is sent automatically)
+      if (!isMounted.current) return;
+      
+      const userData = response.data.data.user;
+      setUser(userData);
       socketService.connect();
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      // User is not authenticated (no cookie or invalid)
+      if (!isMounted.current) return;
+      
+      // Only log non-401 errors (401 is expected when not logged in)
+      if (error.response?.status !== 401) {
+        console.error('Auth error:', error);
+      }
+      setUser(null);
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   };
+
+  useEffect(() => {
+    isMounted.current = true;
+    fetchCurrentUser();
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const signup = async (userData) => {
     try {
       setError(null);
       const response = await authAPI.signup(userData);
-      const { user } = response.data.data;
-      
+      const user = response.data.data.user;
       setUser(user);
-      
-      // Connect socket (cookie is sent automatically)
       socketService.connect();
-      
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Signup failed';
@@ -62,13 +81,9 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authAPI.login(credentials);
-      const { user } = response.data.data;
-      
+      const user = response.data.data.user;
       setUser(user);
-      
-      // Connect socket (cookie is sent automatically)
       socketService.connect();
-      
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
@@ -79,12 +94,15 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authAPI.logout(); // Backend clears cookie
+      await authAPI.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      const message = error.response?.data?.message || 'Logout failed';
+      setError(message);
     } finally {
       setUser(null);
       socketService.disconnect();
+      // Reset the fetch flag so user can log back in
+      hasFetched.current = false;
     }
   };
 
@@ -100,8 +118,13 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     googleLogin,
+    fetchCurrentUser,
     isAuthenticated: !!user,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
