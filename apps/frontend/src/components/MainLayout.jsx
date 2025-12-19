@@ -1,4 +1,3 @@
-
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
@@ -17,7 +16,7 @@ export const MainLayout = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300">
       <Navbar />
       
       <main className={`${maxWidthClasses[maxWidth]} mx-auto ${noPadding ? '' : 'px-4 sm:px-6 lg:px-8 py-6'}`}>
