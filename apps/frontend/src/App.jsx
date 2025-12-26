@@ -39,17 +39,13 @@ function App() {
       <Route 
         path="/dashboard" 
         element={
-          <ProtectedRoute>
             <Dashboard />
-          </ProtectedRoute>
         } 
       />
       <Route 
         path="/room/:roomId" 
         element={
-          <ProtectedRoute>
             <Room />
-          </ProtectedRoute>
         } 
       />
 

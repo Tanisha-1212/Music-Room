@@ -17,7 +17,7 @@ const AuthPage = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { register, login } = useAuth();
+  const { signup, login } = useAuth();
   
   // Determine initial mode based on URL path
   const isRegisterRoute = location.pathname === '/register';
@@ -192,9 +192,9 @@ const AuthPage = () => {
       let result;
       
       if (isLogin) {
-        result = await login(email, password);
+        result = await login({email, password});
       } else {
-        result = await register(username, email, password);
+        result = await signup({username, email, password});
       }
       
       if (result.success) {
@@ -213,7 +213,7 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 rounded-4xl">
       <div className="max-w-md w-full space-y-8">
         
         {/* Header */}
