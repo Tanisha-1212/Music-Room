@@ -22,7 +22,6 @@ export const AuthProvider = ({ children }) => {
   const isMounted = useRef(true);
 
   const fetchCurrentUser = async () => {
-    // Prevent multiple simultaneous calls
     if (hasFetched.current) {
       return;
     }
@@ -41,7 +40,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       if (!isMounted.current) return;
       
-      // Only log non-401 errors (401 is expected when not logged in)
       if (error.response?.status !== 401) {
         console.error('Auth error:', error);
       }
@@ -101,13 +99,66 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       socketService.disconnect();
-      // Reset the fetch flag so user can log back in
       hasFetched.current = false;
     }
   };
 
   const googleLogin = () => {
     authAPI.googleLogin();
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      setError(null);
+      const response = await authAPI.changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword: newPassword // Backend expects this
+      });
+
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message || 'Password changed successfully'
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Failed to change password'
+      };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Password change failed';
+      setError(message);
+      return { success: false, error: message };
+    }
+  };
+
+
+  const deleteAccount = async (password, confirmation) => {
+    try {
+      setError(null);
+      const response = await authAPI.deleteAccount({ password, confirmation });
+
+      if (response.data.success) {
+        setUser(null);
+        socketService.disconnect();
+        hasFetched.current = false;
+        return {
+          success: true,
+          message: response.data.message || 'Account deleted successfully'
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Failed to delete account'
+      };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Account deletion failed';
+      setError(message);
+      return { success: false, error: message };
+    }
   };
 
   const value = {
@@ -118,6 +169,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     googleLogin,
+    changePassword,
+    deleteAccount,
     fetchCurrentUser,
     isAuthenticated: !!user,
   };
