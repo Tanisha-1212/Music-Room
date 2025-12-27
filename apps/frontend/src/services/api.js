@@ -35,7 +35,7 @@ api.interceptors.response.use(
 
 export const authAPI = {
   getCurrentUser: () => api.get('/auth/me'),
-  signup: (userData) => api.post('/auth/signup', userData),
+  signup: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
   googleLogin: () => {
