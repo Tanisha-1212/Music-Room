@@ -250,6 +250,7 @@ export const deleteRoom = async(req, res) => {
     }
 }
 
+
 export const addSongToPlaylist = async (req, res) => {
     try {
         const { roomId } = req.params;

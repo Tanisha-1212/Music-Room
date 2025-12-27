@@ -7,6 +7,11 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
 
 export const setUpPassport = () => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.error('❌ Google OAuth credentials are missing!');
+    console.error('Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file');
+    return;
+  }
   // Google OAuth Strategy
   passport.use(
     new GoogleStrategy(
@@ -22,6 +27,13 @@ export const setUpPassport = () => {
 
           if (user) {
             // User exists, return user
+            console.log('Existing user found:', user._id);
+              // Update Google ID if not set
+              if (!user.googleId) {
+                user.googleId = profile.id;
+                await user.save();
+                console.log('Updated user with Google ID');
+              }
             return done(null, user);
           }
 

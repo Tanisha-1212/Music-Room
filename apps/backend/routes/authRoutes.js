@@ -6,7 +6,9 @@ import{
     logout,
     getCurrentUser,
     googleAuth,
-    googleAuthCallback
+    googleAuthCallback,
+    changePassword,
+    deleteAccount
 } from '../controllers/authController.js';
 
 import {authenticate} from '../middleware/auth.js';
@@ -29,5 +31,9 @@ router.get(
   }),
   googleAuthCallback
 );
+
+router.post('/changePassword', changePassword);
+
+router.delete('/deleteAccount', deleteAccount);
 
 export default router;
