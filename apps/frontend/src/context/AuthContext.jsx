@@ -103,8 +103,37 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const googleLogin = () => {
-    authAPI.googleLogin();
+  const googleLogin = async () => {
+    try {
+      const {data} = await authAPI.googleLogin();
+
+      if(data && data._id){
+        setUser(data);
+        return{
+          success: true,
+          user : data
+        }
+      }
+      else{
+        return{
+          success: false,
+          error : "Failed to fetch user data"
+        }
+      };
+    } catch (error) {
+      const message = error.response?.data?.message || "Google authentication failed";
+      return { success: false, error: message };
+    }
+  };
+
+  const initiateGoogleLogin = () => {
+    // Auto-detect environment
+    const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000'
+      : import.meta.env.VITE_API_URL
+    
+    console.log('🔵 Redirecting to:', `${backendUrl}/api/auth/google`);
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   const changePassword = async (currentPassword, newPassword) => {
@@ -172,6 +201,7 @@ export const AuthProvider = ({ children }) => {
     changePassword,
     deleteAccount,
     fetchCurrentUser,
+    initiateGoogleLogin,
     isAuthenticated: !!user,
   };
 
