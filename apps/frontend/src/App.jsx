@@ -4,7 +4,7 @@ import { useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Room from './pages/Room';
-import GoogleCallback from './pages/GoogleCallback';
+import AuthCallbackHandler from './pages/GoogleCallback';
 import NotFound from './pages/NotFound';
 import MainLayout from './components/MainLayout';
 import Profile from './pages/ProfilePage'
@@ -40,7 +40,7 @@ function App() {
         <Route path="/" element={<Home />} />
         
         {/* Google OAuth callback */}
-        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        <Route path="/auth/google/callback" element={<AuthCallbackHandler />} />
 
         <Route 
           path="/profile" 
