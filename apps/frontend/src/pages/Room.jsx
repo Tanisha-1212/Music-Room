@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRoom } from '../context/RoomContext';
+import { useMusic } from '../context/MusicContext';
 import socketService from '../services/socket';
-import { Users, Music, Search, X, ArrowLeft, Send, MoreVertical, Trash2, Volume2 } from 'lucide-react';
+import { Users, Music, Search, X, ArrowLeft, Send, Trash2, Volume2, Plus, Loader2 } from 'lucide-react';
 import MusicPlayer from '../components/MusicPlayer';
 
 const Room = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { currentRoom, getRoomDetails } = useRoom();
+  const { currentRoom, getRoomDetails, addSongToPlaylist } = useRoom();
+  const { searchMusic, searchResults, loading: searchLoading, clearSearch } = useMusic();
   
   const [loading, setLoading] = useState(true);
   const [showMemberSidebar, setShowMemberSidebar] = useState(false);
@@ -50,8 +52,39 @@ const Room = () => {
     return () => {
       socketService.leaveRoom();
       socketService.off('new_message');
+      clearSearch();
     };
-  }, [roomId, getRoomDetails, navigate]);
+  }, [roomId, getRoomDetails, navigate, clearSearch]);
+
+  // Handle music search
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    await searchMusic(searchQuery, 10);
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    clearSearch();
+  };
+
+  // Add song to playlist
+  const handleAddSong = async (song) => {
+    const result = await addSongToPlaylist(roomId, {
+      videoId: song.videoId,
+      title: song.title,
+      artist: song.artist || song.channel,
+      thumbnail: song.thumbnail,
+      duration: song.duration
+    });
+
+    if (result.success) {
+      // Optionally show success message
+      console.log('Song added to playlist');
+    }
+  };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -120,7 +153,12 @@ const Room = () => {
           {/* Right Side */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowSearch(!showSearch)}
+              onClick={() => {
+                setShowSearch(!showSearch);
+                if (showSearch) {
+                  handleClearSearch();
+                }
+              }}
               className={`p-2 rounded-lg transition-colors ${
                 showSearch
                   ? 'bg-[#6495ED] text-white'
@@ -148,10 +186,10 @@ const Room = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Bar & Results */}
         {showSearch && (
           <div className="mt-3">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
@@ -160,7 +198,68 @@ const Room = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:border-[#6495ED] text-gray-900 dark:text-white"
               />
-            </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </form>
+
+            {/* Search Results Dropdown */}
+            {(searchLoading || searchResults.length > 0) && (
+              <div className="mt-2 max-h-96 overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                {searchLoading ? (
+                  <div className="p-4 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#6495ED]" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Searching...</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                    {searchResults.map((song) => (
+                      <div
+                        key={song.videoId}
+                        className="p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3"
+                      >
+                        {/* Thumbnail */}
+                        <img
+                          src={song.thumbnail}
+                          alt={song.title}
+                          className="w-16 h-16 rounded object-cover flex-shrink-0"
+                        />
+                        
+                        {/* Song Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-white truncate">
+                            {song.title}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {song.artist || song.channel}
+                          </p>
+                          {song.duration && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500">
+                              {song.duration}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Add Button */}
+                        <button
+                          onClick={() => handleAddSong(song)}
+                          className="p-2 rounded-lg bg-[#6495ED] text-white hover:bg-[#5a83d1] transition-colors flex-shrink-0"
+                          aria-label="Add to playlist"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -284,8 +383,6 @@ const ChatMessage = ({ message, currentUser }) => {
 
 // Member Sidebar Component
 const MemberSidebar = ({ room, onClose, currentUser }) => {
-  const isCreator = room.creator._id === currentUser?.id;
-
   return (
     <div className="fixed inset-0 z-50 lg:relative">
       <div className="absolute inset-0 bg-black/50 lg:hidden" onClick={onClose}></div>
@@ -347,11 +444,13 @@ const MemberSidebar = ({ room, onClose, currentUser }) => {
 
 // Playlist Sidebar Component
 const PlaylistSidebar = ({ room, onClose, currentUser }) => {
+  const { removeSongFromPlaylist } = useRoom();
   const isCreator = room.creator._id === currentUser?.id;
 
-  const handleRemoveSong = (songId) => {
-    // TODO: Implement remove song
-    console.log('Remove song:', songId);
+  const handleRemoveSong = async (songId) => {
+    if (window.confirm('Remove this song from the playlist?')) {
+      await removeSongFromPlaylist(room._id, songId);
+    }
   };
 
   return (

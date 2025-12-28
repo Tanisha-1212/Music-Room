@@ -33,18 +33,4 @@ api.interceptors.response.use(
   }
 );
 
-export const authAPI = {
-  getCurrentUser: () => api.get('/auth/me'),
-  signup: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => api.post('/auth/login', credentials),
-  logout: () => api.post('/auth/logout'),
-  googleLogin: () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
-  },
-  // FIXED: Proper parameter structure
-  changePassword: (passwordData) => api.post('/auth/changePassword', passwordData),
-  // FIXED: Proper DELETE request with data
-  deleteAccount: (accountData) => api.delete('/auth/deleteAccount', { data: accountData }),
-};
-
 export default api;

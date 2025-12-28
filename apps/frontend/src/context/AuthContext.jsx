@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { authAPI } from '../services/api';
+import api from '../services/api';
 import socketService from '../services/socket';
 
 const AuthContext = createContext();
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const response = await authAPI.getCurrentUser();
+      const response = await api.get('/auth/me');
       
       if (!isMounted.current) return;
       
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     try {
       setError(null);
-      const response = await authAPI.signup(userData);
+      const response = await api.post('/auth/register', userData);
       const user = response.data.data.user;
       setUser(user);
       socketService.connect();
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setError(null);
-      const response = await authAPI.login(credentials);
+      const response = await api.post('/auth/login', credentials);
       const user = response.data.data.user;
       setUser(user);
       socketService.connect();
@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authAPI.logout();
+      await api.post('/auth/logout');
     } catch (error) {
       const message = error.response?.data?.message || 'Logout failed';
       setError(message);
@@ -103,34 +103,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const googleLogin = async () => {
-    try {
-      const {data} = await authAPI.googleLogin();
-
-      if(data && data._id){
-        setUser(data);
-        return{
-          success: true,
-          user : data
-        }
-      }
-      else{
-        return{
-          success: false,
-          error : "Failed to fetch user data"
-        }
-      };
-    } catch (error) {
-      const message = error.response?.data?.message || "Google authentication failed";
-      return { success: false, error: message };
-    }
-  };
-
   const initiateGoogleLogin = () => {
     // Auto-detect environment
     const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:5000'
-      : import.meta.env.VITE_API_URL
+      : import.meta.env.VITE_API_URL;
     
     console.log('🔵 Redirecting to:', `${backendUrl}/api/auth/google`);
     window.location.href = `${backendUrl}/api/auth/google`;
@@ -139,10 +116,10 @@ export const AuthProvider = ({ children }) => {
   const changePassword = async (currentPassword, newPassword) => {
     try {
       setError(null);
-      const response = await authAPI.changePassword({
+      const response = await api.post('/auth/changePassword', {
         currentPassword,
         newPassword,
-        confirmPassword: newPassword // Backend expects this
+        confirmPassword: newPassword
       });
 
       if (response.data.success) {
@@ -163,11 +140,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
   const deleteAccount = async (password, confirmation) => {
     try {
       setError(null);
-      const response = await authAPI.deleteAccount({ password, confirmation });
+      const response = await api.delete('/auth/deleteAccount', { 
+        data: { password, confirmation } 
+      });
 
       if (response.data.success) {
         setUser(null);
@@ -197,7 +175,6 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     logout,
-    googleLogin,
     changePassword,
     deleteAccount,
     fetchCurrentUser,
