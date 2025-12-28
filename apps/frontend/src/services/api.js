@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // CRITICAL: Must be true for cookies
   headers: {
     'Content-Type': 'application/json',
   },
@@ -15,6 +15,14 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log('API Request:', config.method.toUpperCase(), config.url);
+    
+    // Log if cookies are being sent
+    if (document.cookie) {
+      console.log('Cookies available:', document.cookie.split(';').length);
+    } else {
+      console.warn('⚠️ No cookies found in document.cookie');
+    }
+    
     return config;
   },
   (error) => {
@@ -29,6 +37,12 @@ api.interceptors.response.use(
   },
   (error) => {
     console.log('API Error:', error.response?.status, error.config?.url);
+    
+    if (error.response?.status === 401) {
+      console.error('❌ 401 Unauthorized - Cookie might not be sent or expired');
+      console.log('Current cookies:', document.cookie);
+    }
+    
     return Promise.reject(error);
   }
 );
