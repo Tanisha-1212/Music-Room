@@ -17,9 +17,13 @@ export const createApp = () => {
   app.use(helmet());
   
   // CORS configuration
+  // backend/app.js or server.js
   app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    credentials: true,
+    credentials: true, // ← CRITICAL
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // ← Add Cookie
+    exposedHeaders: ['Set-Cookie'], // ← Important for cookies
   }));
 
   // Body parsing middleware
