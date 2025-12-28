@@ -228,7 +228,7 @@ const Room = () => {
                         <img
                           src={song.thumbnail}
                           alt={song.title}
-                          className="w-16 h-16 rounded object-cover flex-shrink-0"
+                          className="w-16 h-16 rounded object-cover shrink-0"
                         />
                         
                         {/* Song Info */}
@@ -249,7 +249,7 @@ const Room = () => {
                         {/* Add Button */}
                         <button
                           onClick={() => handleAddSong(song)}
-                          className="p-2 rounded-lg bg-[#6495ED] text-white hover:bg-[#5a83d1] transition-colors flex-shrink-0"
+                          className="p-2 rounded-lg bg-[#6495ED] text-white hover:bg-[#5a83d1] transition-colors shrink-0"
                           aria-label="Add to playlist"
                         >
                           <Plus className="w-5 h-5" />
