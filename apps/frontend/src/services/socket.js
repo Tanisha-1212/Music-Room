@@ -1,132 +1,179 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 class SocketService {
   constructor() {
     this.socket = null;
+    this.currentRoom = null;
   }
 
   connect() {
-    if(this.socket?.connected) return;
+    if (this.socket?.connected) {
+      console.log('Socket already connected');
+      return;
+    }
+
+    // Get backend URL
+    const SOCKET_URL = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '') // Remove /api from URL
+      : 'http://localhost:5000';
+
+    console.log('🔌 Connecting to socket server:', SOCKET_URL);
 
     this.socket = io(SOCKET_URL, {
-        withCredentials : true,
-        transports : ['websocket', 'polling'],
+      withCredentials: true,
+      transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
     });
 
+    // Connection events
     this.socket.on('connect', () => {
-        console.log('Socket connected: ', this.socket.id);
+      console.log('✅ Socket connected:', this.socket.id);
     });
 
     this.socket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error.message);
-    })
+      console.error('❌ Socket connection error:', error.message);
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('❌ Socket error:', error);
+    });
   }
 
   disconnect() {
-    if(this.socket) {
-        this.socket.disconnect();
-        this.socket = null;
+    if (this.socket) {
+      console.log('🔌 Disconnecting socket...');
+      this.socket.disconnect();
+      this.socket = null;
+      this.currentRoom = null;
     }
   }
 
   // Room events
-  joinRoom(roomId) { 
-    this.socket?.emit('join-room', {roomId});
+  joinRoom(roomId) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    console.log('🚪 Joining room:', roomId);
+    this.currentRoom = roomId;
+    this.socket.emit('join_room', { roomId });
   }
+
   leaveRoom() {
-    this.socket?.emit('leave-room');
+    if (!this.socket?.connected || !this.currentRoom) {
+      return;
+    }
+
+    console.log('🚪 Leaving room:', this.currentRoom);
+    this.socket.emit('leave_room', { roomId: this.currentRoom });
+    this.currentRoom = null;
   }
-
-  // Music events
-  play(roomId, songId, position) { 
-    this.socket?.emit('play', {roomId, songId, position});
-   }
-
-  pause(roomId, position) {
-    this.socket?.emit('pause', {roomId, position});
-   }
-  
-   seek(roomId, position){
-    this.socket?.emit('seek', {roomId, position});
-   }
-
-   skip(roomId){
-    this.socket?.emit('skip', {roomId});
-   }
-
-   //playlist events
-
-   songAdded(roomId, song){
-    this.socket?.emit('song-added', {roomId, song});
-   }
-
-   songRemoved(roomId, songId){
-    this.socket?.emit('song-removed', {roomId, songId});
-   }
-
 
   // Chat events
-  sendMessage(roomId, content) {
-    this.socket?.emit('chat-message', {roomId, content});
-  }
-  
-  startTyping(roomId){
-    this.socket?.emit('typing-start', {roomId});
+  sendMessage(roomId, message) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    console.log('💬 Sending message to room:', roomId);
+    this.socket.emit('send_message', {
+      roomId,
+      message
+    });
   }
 
-  stopTyping(roomId){
-    this.socket?.emit("typing-stop", {roomId});
-  }
-  // Listeners
-  onRoomData(callback) {
-    this.socket?.on('room-data', callback);
-  }
-  onChatHistory(callback){
-    this.socket?.on('chat-history', callback);
-  }
-  onUserJoined(callback){
-    this.socket?.on('uer-joined', callback);
-  }
-  onUserLeft(callback){
-    this.socket?.on('user-left', callback);
-  }
-  onPlay(callback){
-    this.socket?.on('playback-play', callback);
-  }
-  onPause(callback){
-    this.socket?.on('playback-pause', callback);
-  }
-  onSeek(callback){
-    this.socket?.on('playback-seek', callback);
-  }
-  onSkip(callback){
-    this.socket?.on('playback-skip', callback);
-  }
-  onPlayListUpdated(callback){
-    this.socket?.on('playlist-updated', callback);
-  }
-  onChatMessage(callback){
-    this.socket?.on('chat-message', callback);
-  }
-  onUserTyping(callback){
-    this.socket?.on('user-typing', callback);
-  }
-  onUserStoppedTyping(callback){
-    this.socket?.on('user-stopped-typing', callback);
-  }
-  onError(callback){
-    this.socket?.on('error', callback);
+  // Music control events
+  playMusic(roomId, songData) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    this.socket.emit('play_music', {
+      roomId,
+      ...songData
+    });
   }
 
-  //remove listeners
-  off(eventname, callback){
-    this.socket?.off(eventname, callback);
+  pauseMusic(roomId) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    this.socket.emit('pause_music', { roomId });
   }
-  removeAllListeners(eventName){
-    this.socket?.removeAllListeners(eventName);
+
+  seekMusic(roomId, time) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    this.socket.emit('seek_music', { roomId, time });
+  }
+
+  nextSong(roomId) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    this.socket.emit('next_song', { roomId });
+  }
+
+  previousSong(roomId) {
+    if (!this.socket?.connected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    this.socket.emit('previous_song', { roomId });
+  }
+
+  // Event listeners
+  on(event, callback) {
+    if (!this.socket) {
+      console.error('Socket not initialized');
+      return;
+    }
+
+    this.socket.on(event, callback);
+  }
+
+  off(event, callback) {
+    if (!this.socket) {
+      return;
+    }
+
+    if (callback) {
+      this.socket.off(event, callback);
+    } else {
+      this.socket.off(event);
+    }
+  }
+
+  // Get socket ID
+  getId() {
+    return this.socket?.id;
+  }
+
+  // Check connection status
+  isConnected() {
+    return this.socket?.connected || false;
   }
 }
 
-export default new SocketService();
+// Create singleton instance
+const socketService = new SocketService();
+
+export default socketService;
