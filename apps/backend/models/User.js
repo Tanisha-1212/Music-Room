@@ -1,3 +1,4 @@
+// backend/models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -21,9 +22,14 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: false, // ← Changed to false for Google users
       minlength: [6, 'Password must be at least 6 characters'],
-      select: false, // Don't return password by default
+      select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // ← Allows null values with unique constraint
     },
     avatar: {
       type: String,
@@ -39,29 +45,37 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
 // Index for faster queries
 userSchema.index({ username: 1 });
 userSchema.index({ email: 1 });
+userSchema.index({ googleId: 1 });
 
-// Hash password before saving
-userSchema.pre('save', async function () {
-  // Only hash if password is modified
-  if (!this.isModified('password')) return;
+// Hash password before saving (only if password exists and is modified)
+userSchema.pre('save', async function (next) {
+  // Skip if password doesn't exist or isn't modified
+  if (!this.password || !this.isModified('password')) {
+    return next();
+  }
   
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Method to compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  // Return false if no password (Google users)
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Method to get public profile (without sensitive data)
+// Method to get public profile
 userSchema.methods.toPublicJSON = function () {
   return {
     id: this._id,

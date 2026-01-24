@@ -1,28 +1,27 @@
+// routes/room.js
 import express from 'express';
-const router = express.Router();
 import {
-    createRoom ,
+    createRoom,
     joinRoom,
     leaveRoom,
-    getMyRooms,
     getRoomDetails,
-    deleteRoom,
     addSongToPlaylist,
-    removeSongFromPlaylist
+    removeSongFromPlaylist,
+    skipSong,
+    updatePlayback
 } from '../controllers/roomController.js';
 
 import {authenticate} from '../middleware/auth.js';
 
-router.post('/', authenticate, createRoom);
+const router = express.Router();
+
+router.post('/create', authenticate, createRoom);
 router.post('/join', authenticate, joinRoom);
-router.post('/leave/:roomCode', authenticate, leaveRoom);
-
-router.get('/my-rooms', authenticate, getMyRooms);
-router.get('/:roomId', authenticate, getRoomDetails);
-
-router.delete('/:roomId', authenticate, deleteRoom);
-
-router.post('/:roomId/playlist', authenticate, addSongToPlaylist);
-router.delete('/:roomId/playlist/:songId', authenticate, removeSongFromPlaylist);
+router.post('/:roomCode/leave', authenticate, leaveRoom);
+router.get('/:roomCode', authenticate, getRoomDetails);
+router.post('/:roomCode/playlist/add', authenticate, addSongToPlaylist);
+router.delete('/:roomCode/playlist/:songId', authenticate, removeSongFromPlaylist);
+router.post('/:roomCode/skip', authenticate, skipSong);
+router.put('/:roomCode/playback', authenticate, updatePlayback);
 
 export default router;
